@@ -23,6 +23,7 @@ public class UserRepository implements IUser{
                     .setParameter("username", user.getUserName())
                     .setParameter("email", user.getEmail())
                     .setParameter("password", user.getPasswordHash())
+                    .setParameter("id", user.getId())
                     .executeUpdate();
         });
     }
