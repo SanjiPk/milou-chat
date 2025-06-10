@@ -1,0 +1,111 @@
+package aut.ap.repository;
+
+import aut.ap.entity.Email;
+import aut.ap.entity.User;
+import java.util.List;
+
+public class EmailRepository implements IEmail {
+    @Override
+    public void sendEmail(Email email, User receiver) {
+        DbUtil.runInTransaction(session -> {
+            session.persist(email);
+            session.flush();
+            session.createNativeMutationQuery("INSERT INTO email_recipients(email_id, receiver_id)" +
+                            " values (:email_id, :receiver_id)")
+                    .setParameter("email_id", email.getId())
+                    .setParameter("receiver_id", receiver.getId())
+                    .executeUpdate();
+        });
+    }
+
+    @Override
+    public void forwardEmail(Email email, User receiver) {
+        Email newEmail = email.clone();
+        newEmail.setForward(email);
+        sendEmail(newEmail, receiver);
+    }
+
+    @Override
+    public void replyEmail(Email oldEmail, Email replyEmail) {
+        replyEmail.setReply(oldEmail);
+        sendEmail(replyEmail, oldEmail.getSender());
+    }
+
+    @Override
+    public List<Email> getAllEmail(User emailOwner) {
+        String sqlCommand = "SELECT DISTINCT e.* " +
+                "FROM emails e " +
+                "LEFT JOIN email_recipients r ON e.id = r.email_id " +
+                "WHERE e.sender_id = :emailOwner OR r.receiver_id = :emailOwner";
+
+        return DbUtil.runInTransaction(session -> {
+            return session.createNativeQuery(sqlCommand, Email.class)
+                    .setParameter("emailOwner", emailOwner.getId())
+                    .getResultList();
+        });
+    }
+
+    @Override
+    public List<Email> getContactEmails(User emailOwner, User contact) {
+        String sqlCommand = "SELECT DISTINCT e.* " +
+                "FROM emails e " +
+                "LEFT JOIN email_recipients r ON e.id = r.email_id " +
+                "WHERE e.sender_id = :emailOwner AND r.receiver_id = :contact " +
+                "UNION " +
+                "SELECT DISTINCT e.* " +
+                "FROM emails e " +
+                "LEFT JOIN email_recipients r ON e.id = r.email_id " +
+                "WHERE e.sender_id = :contact AND r.receiver_id = :emailOwner ";
+
+        return DbUtil.runInTransaction(session -> {
+            return session.createNativeQuery(sqlCommand, Email.class)
+                    .setParameter("emailOwner", emailOwner.getId())
+                    .setParameter("contact", contact.getId())
+                    .getResultList();
+        });
+    }
+
+    @Override
+    public List<Email> getUnreadEmail(User emailOwner) {
+        String sqlCommand = "SELECT DISTINCT e.* " +
+                "FROM emails e " +
+                "LEFT JOIN email_recipients r ON e.id = r.email_id " +
+                "WHERE r.receiver_id = :emailOwner AND r.is_read = false";
+
+        return DbUtil.runInTransaction(session -> {
+            return session.createNativeQuery(sqlCommand, Email.class)
+                    .setParameter("emailOwner", emailOwner.getId())
+                    .getResultList();
+        });
+    }
+
+    @Override
+    public Email getEmailByCode(User emailOwner, int emailId) {
+        String sqlCommand = "SELECT DISTINCT e.* " +
+                "FROM emails e " +
+                "LEFT JOIN email_recipients r ON e.id = r.email_id " +
+                "WHERE (e.sender_id = :emailOwner OR r.receiver_id = :emailOwner) AND " +
+                "e.id = :emailId";
+
+        return DbUtil.runInTransaction(session -> {
+            return session.createNativeQuery(sqlCommand, Email.class)
+                    .setParameter("emailOwner", emailOwner.getId())
+                    .setParameter("emailId", emailId)
+                    .getSingleResultOrNull();
+        });
+    }
+
+    @Override
+    public void readEmail(User emailOwner, Email email) {
+        String sqlCommand = "UPDATE email_recipients " +
+                "SET is_read = TRUE " +
+                "WHERE email_id = :emailId AND receiver_id = :emailOwner";
+
+        DbUtil.runInTransaction(session -> {
+            session.createNativeMutationQuery(sqlCommand)
+                    .setParameter("emailId", email.getId())
+                    .setParameter("emailOwner", emailOwner.getId())
+                    .executeUpdate();
+        });
+    }
+}
