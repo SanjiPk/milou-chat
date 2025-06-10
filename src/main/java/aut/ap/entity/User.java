@@ -63,4 +63,9 @@ public class User implements Cloneable{
             throw new AssertionError();
         }
     }
+
+    @Override
+    public String toString() {
+        return String.format("User name: %s\nEmail: %s", getUserName(), getEmail());
+    }
 }
