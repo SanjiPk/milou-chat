@@ -33,12 +33,12 @@ public class UserRepository implements IUser{
     }
 
     @Override
-    public User findUser(String email) {
-        String sqlCommand = "select * from users where email = :email";
+    public User findUser(String str) {
+        String sqlCommand = "select * from users where email = :str OR username = :str";
 
         return DbUtil.runInTransaction(session -> {
             return session.createNativeQuery(sqlCommand, User.class)
-                    .setParameter("email", email)
+                    .setParameter("str", str)
                     .getSingleResultOrNull();
         });
     }
