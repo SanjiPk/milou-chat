@@ -63,4 +63,8 @@ public class UserService {
     public List<User> showContact(User usr) {
         return userRepository.findAllContact(usr);
     }
+
+    public User findUser(String str) {
+        return userRepository.findUser(str);
+    }
 }
