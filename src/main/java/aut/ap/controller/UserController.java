@@ -45,6 +45,14 @@ public class UserController {
         }
     }
 
+    public User findUser(String str) {
+        try {
+            return userService.findUser(str);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static User getCurrentUser() {
         return currentUser;
     }
