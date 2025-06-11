@@ -11,29 +11,24 @@ import java.util.List;
 
 public class EmailService implements IEmail {
     private final EmailRepository emailRepository;
-    private final EmailValidator emailValidator;
 
-    public EmailService(EmailRepository emailRepository, EmailValidator emailValidator) {
+    public EmailService(EmailRepository emailRepository) {
         this.emailRepository = emailRepository;
-        this.emailValidator = emailValidator;
     }
 
 
     @Override
     public void sendEmail(Email email, User receiver) throws EmailNotValidException {
-        emailValidator.validate(email);
         emailRepository.sendEmail(email, receiver);
     }
 
     @Override
     public void forwardEmail(Email email, User receiver) {
-        emailValidator.validate(email);
         emailRepository.forwardEmail(email, receiver);
     }
 
     @Override
     public void replyEmail(Email replyEmail, Email email) {
-        emailValidator.validate(email);
         emailRepository.replyEmail(replyEmail, email);
     }
 
