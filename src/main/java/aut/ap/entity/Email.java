@@ -41,6 +41,7 @@ public class Email implements Cloneable {
         setSender(sender);
         setReply(reply);
         setForward(forward);
+        setSendTime(LocalDateTime.now());
     }
 
     public Integer getId() {
