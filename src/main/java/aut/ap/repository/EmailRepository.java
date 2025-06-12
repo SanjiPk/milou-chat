@@ -112,7 +112,7 @@ public class EmailRepository implements IEmail {
 
     @Override
     public boolean isRead(Email email) {
-        String sqlCommand = "SELECT e.is_read FROM email_recipients " +
+        String sqlCommand = "SELECT e.is_read FROM email_recipients e " +
                 "WHERE email_id = :email";
 
 

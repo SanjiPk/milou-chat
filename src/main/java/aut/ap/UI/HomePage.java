@@ -5,11 +5,14 @@ import aut.ap.controller.UserController;
 import aut.ap.entity.Email;
 import aut.ap.entity.User;
 import aut.ap.repository.UserRepository;
+import org.hibernate.mapping.Collection;
 
 import javax.swing.*;
 import java.awt.*;
+import java.text.CollationElementIterator;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 
 public class HomePage {
@@ -87,7 +90,16 @@ public class HomePage {
         JButton sendEmail = new JButton("send email");
 
         sendEmail.addActionListener(action -> {
+            String emailAddress = JOptionPane.showInputDialog(null, "enter the email: ");
 
+            if (emailAddress != null && !emailAddress.trim().isEmpty()) {
+                User receiver = userController.findUser(emailAddress);
+                if (receiver != null) {
+                    new SendEmailDialog(homePage, receiver, null);
+                } else {
+                    JOptionPane.showMessageDialog(null, "not found.");
+                }
+            }
         });
 
         // Add setting button to setting panel.
@@ -167,6 +179,7 @@ public class HomePage {
             // Add Action.
             openChat.addActionListener(action -> {
                 List<Email> emails = emailController.showContactEmail(user);
+                Collections.sort(emails);
                 emailPanel.removeAll();
 
                 for (Email e : emails) {
@@ -192,7 +205,7 @@ public class HomePage {
         }
     }
 
-    class EmailComponent extends JPanel {
+    class EmailComponent extends JPanel implements Comparable<EmailComponent> {
         private final Email email;
 
         public EmailComponent(Email email) {
@@ -312,9 +325,13 @@ public class HomePage {
             JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
             buttonsPanel.setOpaque(false);
 
+            JButton markAsRead = new JButton("Mark as read");
+
             JButton replyButton = new JButton("Reply");
             replyButton.addActionListener(e -> {
-
+                new SendEmailDialog(null, email.getSender(), email);
+                markAsRead.setBackground(Color.green);
+                emailController.readEmail(email);
             });
 
             JButton forwardButton = new JButton("Forward");
@@ -325,7 +342,7 @@ public class HomePage {
                 }
             });
 
-            JButton markAsRead = new JButton("Mark as read");
+
             markAsRead.addActionListener(action -> {
                 markAsRead.setBackground(Color.green);
                 emailController.readEmail(email);
@@ -334,8 +351,11 @@ public class HomePage {
             buttonsPanel.add(replyButton);
             buttonsPanel.add(forwardButton);
             if (!email.getSender().getEmail().equals(UserController.getCurrentUser().getEmail())) {
-                // TODO: check if is read turn to green
-                buttonsPanel.setBackground(Color.RED);
+                if (emailController.isRead(email)) {
+                    markAsRead.setBackground(Color.green);
+                } else {
+                    markAsRead.setBackground(Color.red);
+                }
                 buttonsPanel.add(markAsRead);
             }
 
@@ -345,6 +365,75 @@ public class HomePage {
         }
 
         private void replyEmail() {
+        }
+
+        public Email getEmail() {
+            return email;
+        }
+
+        @Override
+        public int compareTo(EmailComponent o) {
+            if (email.getSendTime().isBefore(o.getEmail().getSendTime())) {
+                return 1;
+            }
+            else {
+                return -1;
+            }
+        }
+    }
+
+    class SendEmailDialog extends JDialog {
+        private JTextField subjectField;
+        private JTextArea bodyArea;
+        private final User receiver;
+
+        public SendEmailDialog(JFrame parent, User receiver, Email repliedEmail) {
+            super(parent, "Send Email", true);
+            this.receiver = receiver;
+            setSize(400, 300);
+            setLocationRelativeTo(parent);
+            setLayout(new BorderLayout(10, 10));
+
+            // Subject Panel
+            JPanel subjectPanel = new JPanel(new BorderLayout());
+            subjectPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
+            subjectPanel.add(new JLabel("Subject:"), BorderLayout.NORTH);
+
+            subjectField = new JTextField();
+            subjectPanel.add(subjectField, BorderLayout.CENTER);
+
+            // Body Panel
+            JPanel bodyPanel = new JPanel(new BorderLayout());
+            bodyPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
+            bodyPanel.add(new JLabel("Email Body:"), BorderLayout.NORTH);
+
+            bodyArea = new JTextArea();
+            bodyArea.setLineWrap(true);
+            bodyArea.setWrapStyleWord(true);
+
+            JScrollPane bodyScroll = new JScrollPane(bodyArea);
+            bodyScroll.setPreferredSize(new Dimension(380, 150));
+            bodyPanel.add(bodyScroll, BorderLayout.CENTER);
+
+            // Send Button Panel
+            JPanel buttonPanel = new JPanel();
+            JButton sendButton = new JButton("Send");
+            sendButton.addActionListener(e -> {
+                String subject = subjectField.getText();
+                String body = bodyArea.getText();
+                emailController.sendEmail(subject, body, UserController.getCurrentUser(), repliedEmail, null, receiver.getEmail());
+                JOptionPane.showMessageDialog(this, "Email sent!");
+                dispose();
+            });
+
+            buttonPanel.add(sendButton);
+
+            // Add all panels
+            add(subjectPanel, BorderLayout.NORTH);
+            add(bodyPanel, BorderLayout.CENTER);
+            add(buttonPanel, BorderLayout.SOUTH);
+
+            setVisible(true);
         }
     }
 }

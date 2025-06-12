@@ -30,6 +30,10 @@ public class EmailController {
         }
     }
 
+    public void replyEmail(Email replyEmail, Email email) {
+        emailService.replyEmail(replyEmail, email);
+    }
+
     public List<Email> getAllEmail() {
         try {
             return emailService.getAllEmail(UserController.getCurrentUser());

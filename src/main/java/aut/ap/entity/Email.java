@@ -1,12 +1,13 @@
 package aut.ap.entity;
 
+import aut.ap.UI.HomePage;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "emails")
-public class Email implements Cloneable {
+public class Email implements Cloneable, Comparable<Email> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -123,5 +124,15 @@ public class Email implements Cloneable {
                         "---> email subject: %s\n" +
                         "---> email body: %s"
                 , sender.getUserName(), sender.getEmail(), sendTime.toString(), subject, body);
+    }
+
+    @Override
+    public int compareTo(Email o) {
+        if (this.getSendTime().isBefore(o.getSendTime())) {
+            return 1;
+        }
+        else {
+            return -1;
+        }
     }
 }
