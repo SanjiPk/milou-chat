@@ -65,4 +65,8 @@ public class EmailController {
     public List<Email> showContactEmail(User contact) {
         return emailService.getContactEmails(UserController.getCurrentUser(), contact);
     }
+
+    public boolean isRead(Email email) {
+        return emailService.isRead(email);
+    }
 }
