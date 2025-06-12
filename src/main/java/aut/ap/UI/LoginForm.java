@@ -1,5 +1,6 @@
 package aut.ap.UI;
 
+import aut.ap.controller.EmailController;
 import aut.ap.controller.UserController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +11,11 @@ import java.awt.*;
 public class LoginForm {
     private static final Logger log = LoggerFactory.getLogger(LoginForm.class);
     private final UserController userController;
+    private final EmailController emailController;
 
-    public LoginForm(UserController userController) {
+    public LoginForm(UserController userController, EmailController emailController) {
         this.userController = userController;
+        this.emailController = emailController;
         createUI();
     }
 
@@ -138,6 +141,7 @@ public class LoginForm {
             if (userController.login(userEmail, userPassword)) {
                 loginFrame.dispose();
                 // TODO: home page shows
+                new HomePage(emailController, userController);
             }
             else {
                 JOptionPane.showMessageDialog(loginFrame, "Login failed");
