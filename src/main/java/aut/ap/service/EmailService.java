@@ -61,4 +61,9 @@ public class EmailService implements IEmail {
     public void readEmail(User emailOwner, Email email) {
         emailRepository.readEmail(emailOwner, email);
     }
+
+    @Override
+    public boolean isRead(Email email) {
+        return emailRepository.isRead(email);
+    }
 }
