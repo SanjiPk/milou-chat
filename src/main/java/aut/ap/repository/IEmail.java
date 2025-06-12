@@ -21,4 +21,6 @@ public interface IEmail {
     Email getEmailByCode(User emailOwner, int emailId);
 
     void readEmail(User emailOwner, Email email);
+
+    boolean isRead(Email email);
 }

@@ -2,6 +2,7 @@ package aut.ap.repository;
 
 import aut.ap.entity.Email;
 import aut.ap.entity.User;
+
 import java.util.List;
 
 public class EmailRepository implements IEmail {
@@ -106,6 +107,19 @@ public class EmailRepository implements IEmail {
                     .setParameter("emailId", email.getId())
                     .setParameter("emailOwner", emailOwner.getId())
                     .executeUpdate();
+        });
+    }
+
+    @Override
+    public boolean isRead(Email email) {
+        String sqlCommand = "SELECT e.is_read FROM email_recipients " +
+                "WHERE email_id = :email";
+
+
+        return DbUtil.runInTransaction(session -> {
+            return session.createNativeQuery(sqlCommand, Boolean.class)
+                    .setParameter("email", email.getId())
+                    .getSingleResultOrNull();
         });
     }
 }
