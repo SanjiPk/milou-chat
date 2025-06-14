@@ -5,8 +5,10 @@ import aut.ap.controller.UserController;
 import aut.ap.entity.Email;
 import aut.ap.entity.User;
 import aut.ap.repository.UserRepository;
+import com.sun.jdi.event.ExceptionEvent;
 import org.hibernate.mapping.Collection;
 
+import javax.print.attribute.standard.JobOriginatingUserName;
 import javax.swing.*;
 import java.awt.*;
 import java.text.CollationElementIterator;
@@ -25,97 +27,60 @@ public class HomePage {
         this.emailController = emailController;
         this.userController = userController;
 
-        JFrame homePage = new JFrame("Home Page");
-        homePage.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        homePage.setSize(new Dimension(800, 600));
-        homePage.setLocationRelativeTo(null);
-        homePage.setLayout(new GridBagLayout());
+        JFrame homePage = configureMainFrame();
 
-        // User panel (left side).
-        JPanel userPanel = new JPanel();
-        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
-        userPanel.setBackground(Color.BLACK);
+        JPanel leftPanel = configureUserPanel();
 
-        // User list panel
-        userListPanel = new JPanel();
-        userListPanel.setLayout(new BoxLayout(userListPanel, BoxLayout.Y_AXIS));
-        userListPanel.setOpaque(false);
+        JPanel rightPanel = new JPanel(new BorderLayout());
 
-        // New conversion button.
-        JButton newConvBtn = new JButton("New Conversation");
-        newConvBtn.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
-        newConvBtn.addActionListener(e -> openNewConversationDialog());
+        userListPanel = configureUserListPanel();
 
-        newConvBtn.addActionListener(action -> {
-            String emailAddress = JOptionPane.showInputDialog(null, "enter the email: ");
+        emailPanel = configureEmailPanel();
 
-            if (emailAddress != null && !emailAddress.trim().isEmpty()) {
-                User newContact = userController.findUser(emailAddress);
-                if (newContact != null) {
-                    if (!isUserAlreadyAdded(emailAddress)) {
-                        UserComponent tmp = new UserComponent(newContact);
-                        userListPanel.add(tmp);
-                        userListPanel.revalidate();
-                        userListPanel.repaint();
-                    } else {
-                        JOptionPane.showMessageDialog(null, "Contact already exist.");
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(null, "not found.");
-                }
-            }
-        });
-
-        // Email panel (right side).
-        emailPanel = new JPanel();
-        emailPanel.setLayout(new BoxLayout(emailPanel, BoxLayout.Y_AXIS));
-        emailPanel.setBackground(Color.WHITE);
-
-        // Setting menu (up right of panel).
-        JPanel emailTopPanel = new JPanel(new BorderLayout());
-        emailTopPanel.setBackground(Color.WHITE);
-
-        // Setting button.
-        JButton settingsButton = new JButton("Settings");
-        settingsButton.addActionListener(e -> openSettingsDialog());
+        JPanel emailTopPanel = configureTopEmailPanel();
 
         // User scroll and email scroll
-        JScrollPane userScrollPane = new JScrollPane(userPanel);
+        JScrollPane userScrollPane = new JScrollPane(leftPanel);
         JScrollPane emailScrollPane = new JScrollPane(emailPanel);
 
         userScrollPane.setPreferredSize(new Dimension(270, 0));
         emailScrollPane.setPreferredSize(new Dimension(510, 0));
 
+        // New conversion button.
+        JButton newConvBtn = new JButton("New Conversation");
+        newConvBtn.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
+        newConvBtn.addActionListener(action -> newConversionAction(homePage));
+
+        // Setting button.
+        JButton settingsButton = new JButton("Settings");
+        settingsButton.addActionListener(e -> openSettingsDialog());
+
+        // Email type button.
+        JButton emailType = configureEmailTypeButton();
+
         // Send email button.
         JButton sendEmail = new JButton("send email");
-
-        sendEmail.addActionListener(action -> {
-            String emailAddress = JOptionPane.showInputDialog(null, "enter the email: ");
-
-            if (emailAddress != null && !emailAddress.trim().isEmpty()) {
-                User receiver = userController.findUser(emailAddress);
-                if (receiver != null) {
-                    new SendEmailDialog(homePage, receiver, null);
-                } else {
-                    JOptionPane.showMessageDialog(null, "not found.");
-                }
-            }
-        });
+        sendEmail.addActionListener(action -> sendEmailAction(homePage));
 
         // Add setting button to setting panel.
         emailTopPanel.add(settingsButton, BorderLayout.EAST);
+        emailTopPanel.add(emailType, BorderLayout.WEST);
 
-        // Add users to user panel.
-        List<User> contact = userController.showContact();
-        for (User usr : contact) {
-            UserComponent tmp = new UserComponent(usr);
-            userListPanel.add(tmp);
-        }
+        // Add Users.
+        addUserToUserList();
 
-        userPanel.add(userListPanel);
-        userPanel.add(Box.createVerticalStrut(10));
-        userPanel.add(newConvBtn);
+        // Add UnreadEmails.
+        unreadEmail();
 
+        // Add field to rightPanel.
+        rightPanel.add(emailTopPanel, BorderLayout.NORTH);
+        rightPanel.add(emailScrollPane, BorderLayout.CENTER);
+        rightPanel.add(sendEmail, BorderLayout.SOUTH);
+
+        // Add field to leftPanel.
+        leftPanel.add(userListPanel);
+        leftPanel.add(Box.createVerticalStrut(10));
+        leftPanel.add(newConvBtn);
 
         // Add field to Frame.
         GridBagConstraints gbc = new GridBagConstraints();
@@ -127,11 +92,6 @@ public class HomePage {
         gbc.weightx = 1.15;
         homePage.add(userScrollPane, gbc);
 
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(emailTopPanel, BorderLayout.NORTH);
-        rightPanel.add(emailScrollPane, BorderLayout.CENTER);
-        rightPanel.add(sendEmail, BorderLayout.SOUTH);
-
         gbc.gridx = 1;
         gbc.weightx = 2;
         homePage.add(rightPanel, gbc);
@@ -139,12 +99,178 @@ public class HomePage {
         homePage.setVisible(true);
     }
 
-    private void openNewConversationDialog() {
+    private JFrame configureMainFrame() {
+        JFrame homePage = new JFrame("Home Page");
+        homePage.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        homePage.setSize(new Dimension(800, 600));
+        homePage.setLocationRelativeTo(null);
+        homePage.setLayout(new GridBagLayout());
+        return homePage;
+    }
 
+    private JPanel configureUserPanel() {
+        JPanel userPanel = new JPanel();
+        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+        userPanel.setBackground(Color.BLACK);
+        return userPanel;
+    }
+
+    private JPanel configureUserListPanel() {
+        JPanel userListPanel = new JPanel();
+        userListPanel.setLayout(new BoxLayout(userListPanel, BoxLayout.Y_AXIS));
+        userListPanel.setOpaque(false);
+        return userListPanel;
+    }
+
+    private JPanel configureEmailPanel() {
+        JPanel emailPanel = new JPanel();
+        emailPanel.setLayout(new BoxLayout(emailPanel, BoxLayout.Y_AXIS));
+        emailPanel.setBackground(Color.WHITE);
+        return emailPanel;
+    }
+
+    private JPanel configureTopEmailPanel() {
+        JPanel emailTopPanel = new JPanel(new BorderLayout());
+        emailTopPanel.setBackground(Color.WHITE);
+        return emailTopPanel;
+    }
+
+    private JButton configureEmailTypeButton() {
+        JButton emailType = new JButton("Unread email");
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        JMenuItem unreadEmail = new JMenuItem("Unread email");
+        JMenuItem allEmail = new JMenuItem("All emails");
+        JMenuItem findEmailById = new JMenuItem("find by id");
+
+        unreadEmail.addActionListener(action -> {
+            try {
+                List<Email> emails = emailController.getUnreadEmail();
+                emailType.setText("Unread email");
+                emailPanel.removeAll();
+                if (emails == null) {
+                    JOptionPane.showMessageDialog(null, "There is no unread email here.");
+                } else {
+                    for (Email email : emails) {
+                        EmailComponent tmp = new EmailComponent(email);
+                        emailPanel.add(tmp);
+                    }
+                    emailPanel.revalidate();
+                    emailPanel.repaint();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Can't show unread message.");
+            }
+        });
+
+        allEmail.addActionListener(action -> {
+            try {
+                List<Email> emails = emailController.getAllEmail();
+                emailType.setText("All emails");
+                emailPanel.removeAll();
+                if (emails == null) {
+                    JOptionPane.showMessageDialog(null, "There is no email here.");
+                } else {
+                    for (Email email : emails) {
+                        EmailComponent tmp = new EmailComponent(email);
+                        emailPanel.add(tmp);
+                    }
+                    emailPanel.revalidate();
+                    emailPanel.repaint();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Can't show any message.");
+            }
+        });
+
+        findEmailById.addActionListener(action -> {
+            String sId = JOptionPane.showInputDialog(null, "Enter email id: ");
+            int id;
+            try {
+                id = Integer.parseInt(sId);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Invalid input.");
+                return;
+            }
+
+            try {
+                Email email = emailController.findEmailByCode(id);
+                EmailComponent tmp = new EmailComponent(email);
+                emailType.setText(String.format("email id: %d", email.getId()));
+                emailPanel.removeAll();
+                emailPanel.add(tmp);
+                emailPanel.revalidate();
+                emailPanel.repaint();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Can't find email.");
+            }
+        });
+
+        popupMenu.add(unreadEmail);
+        popupMenu.add(allEmail);
+        popupMenu.add(findEmailById);
+
+        emailType.addActionListener(action -> {
+            popupMenu.show(emailType, 0, emailType.getHeight());
+        });
+
+        return emailType;
+    }
+
+    private void addUserToUserList() {
+        // Add users to user panel.
+        List<User> contact;
+        try {
+            contact = userController.showContact();
+            userListPanel.removeAll();
+            for (User usr : contact) {
+                UserComponent tmp = new UserComponent(usr);
+                userListPanel.add(tmp);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error for showing Contact.");
+        }
+    }
+
+    private void newConversionAction(JFrame homePage) {
+        User newContact = findUser(homePage);
+
+//        assert newContact != null;
+        if (newContact != null && isUserAlreadyAdded(newContact.getEmail())) {
+            UserComponent tmp = new UserComponent(newContact);
+            userListPanel.add(tmp);
+            userListPanel.revalidate();
+            userListPanel.repaint();
+        }
+    }
+
+    private void sendEmailAction(JFrame homePage) {
+        User receiver = findUser(homePage);
+        if (receiver != null) {
+            new SendEmailDialog(homePage, receiver, null);
+            addUserToUserList();
+            userListPanel.revalidate();
+            userListPanel.repaint();
+        }
     }
 
     private void openSettingsDialog() {
 
+    }
+
+    private void unreadEmail() {
+        try {
+            List<Email> emails = emailController.getUnreadEmail();
+            emailPanel.removeAll();
+            for (Email email : emails) {
+                EmailComponent tmp = new EmailComponent(email);
+                emailPanel.add(tmp);
+            }
+            emailPanel.revalidate();
+            emailPanel.repaint();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Can't show unread message.");
+        }
     }
 
     private boolean isUserAlreadyAdded(String email) {
@@ -156,39 +282,44 @@ public class HomePage {
         return false;
     }
 
+    private User findUser(JFrame homePage) {
+        String emailAddress = JOptionPane.showInputDialog(null, "enter the email: ");
+
+        User receiver = null;
+        if (emailAddress == null || emailAddress.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            receiver = userController.findUser(emailAddress);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(homePage, "There is an error to find user.");
+        }
+        if (receiver == null) {
+            JOptionPane.showMessageDialog(homePage, "User not exist.");
+            return null;
+        }
+        return receiver;
+    }
+
 
     class UserComponent extends JPanel {
         private final User user;
 
         public UserComponent(User user) {
             this.user = user;
-            setLayout(new BorderLayout());
-            setBackground(new Color(230, 230, 230));
-            setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            setAlignmentX(Component.LEFT_ALIGNMENT);
+            configureMainPanel();
+
+            JPanel infoPanel = new JPanel();
+            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+            infoPanel.setOpaque(false);
 
             // Field for UserComponent
             JLabel username = new JLabel("Username: " + user.getUserName());
             JLabel email = new JLabel("Email: " + user.getEmail());
             JButton openChat = new JButton("Open Chat");
 
-            JPanel infoPanel = new JPanel();
-            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-            infoPanel.setOpaque(false);
-
             // Add Action.
-            openChat.addActionListener(action -> {
-                List<Email> emails = emailController.showContactEmail(user);
-                Collections.sort(emails);
-                emailPanel.removeAll();
-
-                for (Email e : emails) {
-                    EmailComponent tmp = new EmailComponent(e);
-                    emailPanel.add(tmp);
-                }
-                emailPanel.revalidate();
-                emailPanel.repaint();
-            });
+            openChat.addActionListener(action -> openChatAction());
 
             // Add fields to parents.
             infoPanel.add(username);
@@ -200,12 +331,36 @@ public class HomePage {
             setMaximumSize(new Dimension(Short.MAX_VALUE, 70));
         }
 
+        private void configureMainPanel() {
+            setLayout(new BorderLayout());
+            setBackground(new Color(230, 230, 230));
+            setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+
+        private void openChatAction() {
+            try {
+                List<Email> emails = emailController.showContactEmail(user);
+                Collections.sort(emails);
+                emailPanel.removeAll();
+
+                for (Email e : emails) {
+                    EmailComponent tmp = new EmailComponent(e);
+                    emailPanel.add(tmp);
+                }
+                emailPanel.revalidate();
+                emailPanel.repaint();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Error occur.");
+            }
+        }
+
         public User getUser() {
             return user;
         }
     }
 
-    class EmailComponent extends JPanel implements Comparable<EmailComponent> {
+    class EmailComponent extends JPanel {
         private final Email email;
 
         public EmailComponent(Email email) {
@@ -226,16 +381,19 @@ public class HomePage {
         }
 
         private JPanel senderPanel() {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setOpaque(false);
 
             User sender = email.getSender();
-            String senderName = sender != null ? sender.getUserName() : "Unknown";
             String senderEmail = sender != null ? sender.getEmail() : "Unknown";
 
-            JLabel senderLabel = new JLabel(senderName + " <" + senderEmail + ">");
-            senderLabel.setFont(senderLabel.getFont().deriveFont(Font.BOLD, 14f));
+            JLabel subject = new JLabel(email.getSubject());
+            subject.setFont(subject.getFont().deriveFont(Font.BOLD, 20f));
 
+            JLabel senderLabel = new JLabel("<" + senderEmail + ">");
+
+            panel.add(subject);
             panel.add(senderLabel);
 
             return panel;
@@ -328,24 +486,21 @@ public class HomePage {
             JButton markAsRead = new JButton("Mark as read");
 
             JButton replyButton = new JButton("Reply");
-            replyButton.addActionListener(e -> {
-                new SendEmailDialog(null, email.getSender(), email);
-                markAsRead.setBackground(Color.green);
-                emailController.readEmail(email);
-            });
+            replyButton.addActionListener(action -> replyAction(markAsRead));
 
             JButton forwardButton = new JButton("Forward");
-            forwardButton.addActionListener(e -> {
-                String emailAddress = JOptionPane.showInputDialog(null, "Enter email: ");
-                if (emailAddress != null && !emailAddress.trim().isEmpty()) {
-                    emailController.sendEmail(email.getSubject(), email.getBody(), UserController.getCurrentUser(), email.getReply(), email, emailAddress);
-                }
-            });
+            forwardButton.addActionListener(action -> forwardAction(markAsRead));
 
 
             markAsRead.addActionListener(action -> {
-                markAsRead.setBackground(Color.green);
-                emailController.readEmail(email);
+                try {
+                    emailController.readEmail(email);
+                    markAsRead.setBackground(Color.green);
+                    revalidate();
+                    repaint();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "Error occur.");
+                }
             });
 
             buttonsPanel.add(replyButton);
@@ -360,36 +515,54 @@ public class HomePage {
             }
 
             bottomPanel.add(buttonsPanel, BorderLayout.EAST);
-
             return bottomPanel;
         }
 
-        private void replyEmail() {
+        private void replyAction(JButton markAsRead) {
+            try {
+                new SendEmailDialog(null, email.getSender(), email);
+                emailController.readEmail(email);
+                markAsRead.setBackground(Color.green);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Replying didn't work.");
+            }
+        }
+
+        private void forwardAction(JButton markAsRead) {
+            String emailAddress = JOptionPane.showInputDialog(null, "Enter email: ");
+
+            User receiver = null;
+            try {
+                receiver = userController.findUser(emailAddress);
+                if (receiver == null) {
+                    JOptionPane.showMessageDialog(null, "User not found.");
+                    return;
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Error to find user. 404!");
+                return;
+            }
+            try {
+                emailController.forwardEmail(email.clone(), receiver);
+                emailController.readEmail(email);
+                markAsRead.setBackground(Color.green);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Error to forward email for "
+                        + receiver.getUserName() + ".");
+            }
         }
 
         public Email getEmail() {
             return email;
         }
-
-        @Override
-        public int compareTo(EmailComponent o) {
-            if (email.getSendTime().isBefore(o.getEmail().getSendTime())) {
-                return 1;
-            }
-            else {
-                return -1;
-            }
-        }
     }
 
     class SendEmailDialog extends JDialog {
-        private JTextField subjectField;
-        private JTextArea bodyArea;
-        private final User receiver;
+        private final JTextField subjectField;
+        private final JTextArea bodyArea;
 
         public SendEmailDialog(JFrame parent, User receiver, Email repliedEmail) {
             super(parent, "Send Email", true);
-            this.receiver = receiver;
             setSize(400, 300);
             setLocationRelativeTo(parent);
             setLayout(new BorderLayout(10, 10));
@@ -418,12 +591,16 @@ public class HomePage {
             // Send Button Panel
             JPanel buttonPanel = new JPanel();
             JButton sendButton = new JButton("Send");
-            sendButton.addActionListener(e -> {
+            sendButton.addActionListener(action -> {
                 String subject = subjectField.getText();
                 String body = bodyArea.getText();
-                emailController.sendEmail(subject, body, UserController.getCurrentUser(), repliedEmail, null, receiver.getEmail());
-                JOptionPane.showMessageDialog(this, "Email sent!");
-                dispose();
+                try {
+                    emailController.sendEmail(subject, body, UserController.getCurrentUser(), repliedEmail, null, receiver.getEmail());
+                    JOptionPane.showMessageDialog(this, "Email sent!");
+                    dispose();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, e.getMessage());
+                }
             });
 
             buttonPanel.add(sendButton);

@@ -7,12 +7,12 @@ import java.util.function.Consumer;
 
 public class UserRepository implements IUser{
     @Override
-    public void addUser(User user) {
+    public void addUser(User user) throws Exception{
         DbUtil.runInTransaction((Consumer<Session>) session -> session.persist(user));
     }
 
     @Override
-    public void updateUser(User user) {
+    public void updateUser(User user) throws Exception{
         String sqlCommand = "update users set username = :username," +
                 " email = :email," +
                 " password_hash = :password " +
@@ -29,12 +29,12 @@ public class UserRepository implements IUser{
     }
 
     @Override
-    public void deleteUser(User user) {
+    public void deleteUser(User user) throws Exception{
         DbUtil.runInTransaction((Consumer<Session>)  session -> session.remove(user));
     }
 
     @Override
-    public User findUser(String str) {
+    public User findUser(String str) throws Exception{
         String sqlCommand = "select * from users where email = :str OR username = :str";
 
         return DbUtil.runInTransaction(session -> {
@@ -45,7 +45,7 @@ public class UserRepository implements IUser{
     }
 
     @Override
-    public List<User> findAllContact(User user) {
+    public List<User> findAllContact(User user) throws Exception{
         String sqlCommand = "SELECT DISTINCT u.* " +
                 "FROM users AS u " +
                 "         JOIN email_recipients er ON u.id = er.receiver_id " +

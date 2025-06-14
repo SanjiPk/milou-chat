@@ -16,10 +16,14 @@ public class UserValidator implements Validator<User> {
             return false;
         }
 
-        if (!Objects.isNull(userRepository.findUser(user.getUserName()))) {
+        try {
+            if (!Objects.isNull(userRepository.findUser(user.getUserName()))) {
+                return false;
+            }
+
+            return Objects.isNull(userRepository.findUser(user.getEmail()));
+        } catch (Exception e) {
             return false;
         }
-
-        return Objects.isNull(userRepository.findUser(user.getEmail()));
     }
 }

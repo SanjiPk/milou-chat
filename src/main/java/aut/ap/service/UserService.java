@@ -19,17 +19,16 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public void register(User user) {
+    public void register(User user) throws Exception {
         Validator<User> userValidator = new UserValidator();
         if (userValidator.validate(user)) {
             userRepository.addUser(user);
-        }
-        else {
+        } else {
             throw new UserNotValidException("User is not validate.");
         }
     }
 
-    public User login(String email, String password) {
+    public User login(String email, String password) throws Exception {
         User usr = userRepository.findUser(email);
 
         if (email.isBlank()) {
@@ -46,25 +45,25 @@ public class UserService {
         return null;
     }
 
-    public void changePassword(User current, String oldPass, String newPass) throws Exception{
+    public void changePassword(User current, String oldPass, String newPass) throws Exception {
         User usr = userRepository.findUser(current.getEmail());
         if (Objects.isNull(usr)) {
             throw new EntityNotFoundException("User not found!!!");
         }
 
         if (PasswordSecurity.checkPassword(oldPass, usr.getPasswordHash())) {
-            throw  new IncorrectPasswordException("Old password is incorrect.");
+            throw new IncorrectPasswordException("Old password is incorrect.");
         }
 
         usr.setPasswordHash(newPass);
         userRepository.updateUser(usr);
     }
 
-    public List<User> showContact(User usr) {
+    public List<User> showContact(User usr) throws Exception {
         return userRepository.findAllContact(usr);
     }
 
-    public User findUser(String str) {
+    public User findUser(String str) throws Exception {
         return userRepository.findUser(str);
     }
 }

@@ -8,7 +8,7 @@ import java.util.function.Function;
 
 public class DbUtil {
 
-    public static void runInTransaction(Consumer<Session> consumer) {
+    public static void runInTransaction(Consumer<Session> consumer) throws Exception{
         Transaction tx = null;
         try (Session session = SingletonSessionFactory.get().openSession()) {
             tx = session.beginTransaction();
@@ -18,10 +18,11 @@ public class DbUtil {
             if (tx != null) {
                 tx.rollback();
             }
+            throw new Exception(e.getMessage());
         }
     }
 
-    public static <T> T runInTransaction(Function<Session, T> function) {
+    public static <T> T runInTransaction(Function<Session, T> function) throws Exception{
         Transaction tx = null;
         T result = null;
         try (Session session = SingletonSessionFactory.get().openSession()) {
@@ -32,6 +33,7 @@ public class DbUtil {
             if (tx != null) {
                 tx.rollback();
             }
+            throw new Exception(e.getMessage());
         }
         return result;
     }

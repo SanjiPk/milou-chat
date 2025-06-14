@@ -152,8 +152,12 @@ public class LoginForm {
             String userUserName = regUsername.getText();
             String userEmail = regEmail.getText();
             String userPassword = String.valueOf(regPassword.getPassword());
-            userController.register(userUserName, userEmail, userPassword);
-            JOptionPane.showMessageDialog(loginFrame, "Congratulation! now login and enjoy.");
+            try {
+                userController.register(userUserName, userEmail, userPassword);
+                JOptionPane.showMessageDialog(loginFrame, "Congratulation! now login and enjoy.");
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(loginFrame, "Can't create new account\nplease try again.");
+            }
         });
 
 

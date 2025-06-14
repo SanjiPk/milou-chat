@@ -1,6 +1,7 @@
 package aut.ap.controller;
 
 import aut.ap.entity.User;
+import aut.ap.exceptions.UserNotValidException;
 import aut.ap.service.UserService;
 import aut.ap.validation.UserValidator;
 import aut.ap.validation.Validator;
@@ -16,12 +17,9 @@ public class UserController {
         this.userService = userService;
     }
 
-    public void register(String userName, String email, String password) {
+    public void register(String userName, String email, String password) throws Exception {
         User usr = new User(userName, email, password);
-        Validator<User> userValidator = new UserValidator();
-        if (userValidator.validate(usr)) {
-            userService.register(usr);
-        }
+        userService.register(usr);
     }
 
     public boolean login(String email, String password) {
@@ -33,11 +31,11 @@ public class UserController {
         return !Objects.isNull(currentUser);
     }
 
-    public List<User> showContact() {
+    public List<User> showContact() throws Exception{
         return userService.showContact(currentUser);
     }
 
-    public void changePassword(String oldPassword, String newPassword) {
+    public void changePassword(String oldPassword, String newPassword) throws Exception{
         try {
             userService.changePassword(currentUser, oldPassword, newPassword);
         } catch (Exception e) {
@@ -45,12 +43,8 @@ public class UserController {
         }
     }
 
-    public User findUser(String str) {
-        try {
-            return userService.findUser(str);
-        } catch (Exception e) {
-            return null;
-        }
+    public User findUser(String str) throws Exception {
+        return userService.findUser(str);
     }
 
     public static User getCurrentUser() {

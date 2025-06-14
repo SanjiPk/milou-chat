@@ -7,7 +7,7 @@ import java.util.List;
 
 public class EmailRepository implements IEmail {
     @Override
-    public void sendEmail(Email email, User receiver) {
+    public void sendEmail(Email email, User receiver) throws Exception {
         DbUtil.runInTransaction(session -> {
             session.persist(email);
             session.flush();
@@ -20,20 +20,28 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public void forwardEmail(Email email, User receiver) {
+    public void forwardEmail(Email email, User receiver) throws Exception{
         Email newEmail = email.clone();
         newEmail.setForward(email);
-        sendEmail(newEmail, receiver);
+        try {
+            sendEmail(newEmail, receiver);
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 
     @Override
-    public void replyEmail(Email oldEmail, Email replyEmail) {
+    public void replyEmail(Email oldEmail, Email replyEmail) throws Exception {
         replyEmail.setReply(oldEmail);
-        sendEmail(replyEmail, oldEmail.getSender());
+        try {
+            sendEmail(replyEmail, oldEmail.getSender());
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 
     @Override
-    public List<Email> getAllEmail(User emailOwner) {
+    public List<Email> getAllEmail(User emailOwner) throws Exception {
         String sqlCommand = "SELECT DISTINCT e.* " +
                 "FROM emails e " +
                 "LEFT JOIN email_recipients r ON e.id = r.email_id " +
@@ -47,7 +55,7 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public List<Email> getContactEmails(User emailOwner, User contact) {
+    public List<Email> getContactEmails(User emailOwner, User contact) throws Exception {
         String sqlCommand = "SELECT DISTINCT e.* " +
                 "FROM emails e " +
                 "LEFT JOIN email_recipients r ON e.id = r.email_id " +
@@ -67,7 +75,7 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public List<Email> getUnreadEmail(User emailOwner) {
+    public List<Email> getUnreadEmail(User emailOwner) throws Exception {
         String sqlCommand = "SELECT DISTINCT e.* " +
                 "FROM emails e " +
                 "LEFT JOIN email_recipients r ON e.id = r.email_id " +
@@ -81,7 +89,7 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public Email getEmailByCode(User emailOwner, int emailId) {
+    public Email getEmailByCode(User emailOwner, int emailId) throws Exception {
         String sqlCommand = "SELECT DISTINCT e.* " +
                 "FROM emails e " +
                 "LEFT JOIN email_recipients r ON e.id = r.email_id " +
@@ -97,7 +105,7 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public void readEmail(User emailOwner, Email email) {
+    public void readEmail(User emailOwner, Email email) throws Exception {
         String sqlCommand = "UPDATE email_recipients " +
                 "SET is_read = TRUE " +
                 "WHERE email_id = :emailId AND receiver_id = :emailOwner";
@@ -111,7 +119,7 @@ public class EmailRepository implements IEmail {
     }
 
     @Override
-    public boolean isRead(Email email) {
+    public boolean isRead(Email email) throws Exception {
         String sqlCommand = "SELECT e.is_read FROM email_recipients e " +
                 "WHERE email_id = :email";
 

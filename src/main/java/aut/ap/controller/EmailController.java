@@ -2,6 +2,7 @@ package aut.ap.controller;
 
 import aut.ap.entity.Email;
 import aut.ap.entity.User;
+import aut.ap.exceptions.EmailNotValidException;
 import aut.ap.service.EmailService;
 import aut.ap.validation.EmailValidator;
 
@@ -18,55 +19,41 @@ public class EmailController {
         this.emailValidator = emailValidator;
     }
 
-    public void sendEmail(String subject, String body, User sender, Email reply, Email forward, String receiver) {
+    public void sendEmail(String subject, String body, User sender, Email reply, Email forward, String receiver) throws Exception {
         Email email = new Email(subject, body, sender, reply, forward);
 
         if (emailValidator.validate(email)) {
-            try {
-                emailService.sendEmail(email, userController.findUser(receiver));
-            } catch (Exception e) {
-                return;
-            }
+            emailService.sendEmail(email, userController.findUser(receiver));
+        } else {
+            throw new EmailNotValidException("Email is not valid.");
         }
     }
 
-    public void replyEmail(Email replyEmail, Email email) {
+    public void replyEmail(Email replyEmail, Email email) throws Exception {
         emailService.replyEmail(replyEmail, email);
     }
 
-    public List<Email> getAllEmail() {
-        try {
-            return emailService.getAllEmail(UserController.getCurrentUser());
-        } catch (Exception e) {
-            return null;
-        }
+    public void forwardEmail(Email email, User receiver) throws Exception {
+        emailService.forwardEmail(email, receiver);
     }
 
-    public List<Email> getUnreadEmail() {
-        try {
-            return emailService.getUnreadEmail(UserController.getCurrentUser());
-        } catch (Exception e) {
-            return null;
-        }
+    public List<Email> getAllEmail() throws Exception {
+        return emailService.getAllEmail(UserController.getCurrentUser());
     }
 
-    public Email findEmailByCode(int id) {
-        try {
-            return emailService.getEmailByCode(UserController.getCurrentUser(), id);
-        } catch (Exception e) {
-            return null;
-        }
+    public List<Email> getUnreadEmail() throws Exception {
+        return emailService.getUnreadEmail(UserController.getCurrentUser());
     }
 
-    public void readEmail(Email email) {
-        try {
-            emailService.readEmail(UserController.getCurrentUser(), email);
-        } catch (Exception e) {
-            return;
-        }
+    public Email findEmailByCode(int id) throws Exception {
+        return emailService.getEmailByCode(UserController.getCurrentUser(), id);
     }
 
-    public List<Email> showContactEmail(User contact) {
+    public void readEmail(Email email) throws Exception {
+        emailService.readEmail(UserController.getCurrentUser(), email);
+    }
+
+    public List<Email> showContactEmail(User contact) throws Exception {
         return emailService.getContactEmails(UserController.getCurrentUser(), contact);
     }
 
